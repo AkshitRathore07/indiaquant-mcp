@@ -1,5 +1,8 @@
 """IndiaQuant MCP Server - 10 tools for Indian stock market intelligence."""
 
+import os
+import sys
+
 from mcp.server.fastmcp import FastMCP
 from modules.market_data import get_live_price, scan_market, get_sector_heatmap
 from modules.signal_generator import generate_signal, analyze_sentiment
@@ -11,10 +14,8 @@ from modules.options_analyzer import (
 from modules.portfolio_manager import place_virtual_trade, get_portfolio_pnl
 
 # Create MCP server
-mcp = FastMCP(
-    "IndiaQuant MCP",
-    description="Real-time Indian stock market AI assistant with 10 intelligence tools",
-)
+_port = int(os.environ.get("PORT", 8000))
+mcp = FastMCP("IndiaQuant MCP", host="0.0.0.0", port=_port)
 
 
 # ──────────────────────────────────────────────
@@ -236,4 +237,10 @@ def tool_get_sector_heatmap() -> dict:
 # Run the server
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
-    mcp.run()
+    transport = "stdio"
+    if "--transport" in sys.argv:
+        idx = sys.argv.index("--transport")
+        if idx + 1 < len(sys.argv):
+            transport = sys.argv[idx + 1]
+
+    mcp.run(transport=transport)
