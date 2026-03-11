@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: indiaquant-mcp
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py --transport sse
+    envVars:
+      - key: NEWSAPI_KEY
+        sync: false
+      - key: ALPHA_VANTAGE_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.6
