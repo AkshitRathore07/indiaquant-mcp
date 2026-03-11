@@ -1,6 +1,6 @@
 """AI Trade Signal Generator - Technicals + Sentiment → BUY/SELL/HOLD."""
 
-import pandas_ta as ta
+import ta as ta_lib
 import httpx
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from modules.market_data import get_historical_data, get_live_price, normalize_symbol
@@ -20,28 +20,30 @@ def compute_technicals(symbol: str, timeframe: str = "1mo") -> dict:
     close = hist["Close"]
 
     # RSI (14-period)
-    rsi = ta.rsi(close, length=14)
-    current_rsi = float(rsi.iloc[-1]) if rsi is not None and not rsi.empty else None
+    rsi_series = ta_lib.momentum.RSIIndicator(close, window=14).rsi()
+    current_rsi = float(rsi_series.iloc[-1]) if rsi_series is not None and not rsi_series.empty else None
 
     # MACD (12, 26, 9)
-    macd_df = ta.macd(close, fast=12, slow=26, signal=9)
+    macd_ind = ta_lib.trend.MACD(close, window_slow=26, window_fast=12, window_sign=9)
     macd_val = None
     macd_signal = None
     macd_hist = None
-    if macd_df is not None and not macd_df.empty:
-        cols = macd_df.columns
-        macd_val = float(macd_df[cols[0]].iloc[-1])
-        macd_signal = float(macd_df[cols[1]].iloc[-1])
-        macd_hist = float(macd_df[cols[2]].iloc[-1])
+    try:
+        macd_val = float(macd_ind.macd().iloc[-1])
+        macd_signal = float(macd_ind.macd_signal().iloc[-1])
+        macd_hist = float(macd_ind.macd_diff().iloc[-1])
+    except Exception:
+        pass
 
     # Bollinger Bands (20, 2)
-    bbands = ta.bbands(close, length=20, std=2)
+    bb_ind = ta_lib.volatility.BollingerBands(close, window=20, window_dev=2)
     bb_upper = bb_middle = bb_lower = None
-    if bbands is not None and not bbands.empty:
-        cols = bbands.columns
-        bb_lower = float(bbands[cols[0]].iloc[-1])
-        bb_middle = float(bbands[cols[1]].iloc[-1])
-        bb_upper = float(bbands[cols[2]].iloc[-1])
+    try:
+        bb_upper = float(bb_ind.bollinger_hband().iloc[-1])
+        bb_middle = float(bb_ind.bollinger_mavg().iloc[-1])
+        bb_lower = float(bb_ind.bollinger_lband().iloc[-1])
+    except Exception:
+        pass
 
     current_price = float(close.iloc[-1])
 
